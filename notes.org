@@ -1,0 +1,15 @@
+* Build instructions
+** General
+- need vagrant, ssh and virtualbox
+** Windows
+- run build_windows.sh (requires bash, git-bash is recommended)
+- the executable will be placed into the build directory
+* Build Idea
+- Compile on isolated vagrant box,
+  provisioner installs all required software
+- 
+* Cross Compiling with mingw-w64
+** Required DLLs
+- libstdc++-6.dll
+- libgcc_s_seh-1.dll
+- libwinpthread-1.dll
