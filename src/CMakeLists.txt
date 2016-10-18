@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
 project(dynamic_dungeon)
-set(DUNGEONS_SOURCE_FILES main.cpp)
+set(DUNGEONS_SOURCE_FILES main.cpp dungeon_util.h dungeon_util.cpp)
 add_executable(dungeons WIN32 ${DUNGEONS_SOURCE_FILES})
 set_target_properties(dungeons PROPERTIES CXX_STANDARD 14)
 

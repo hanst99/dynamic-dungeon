@@ -1,17 +1,11 @@
 #include <iostream>
 #include <fstream>
-#include <functional>
 #include <ctime>
 #include <SDL.h>
+#include <SDL_image.h>
 
-class at_exit {
-  std::function<void(void)> callback;
-public:
-  at_exit(std::function<void(void)> callback) : callback(callback) {}
-  ~at_exit() {
-    callback();
-  }
-};
+#include "dungeon_util.h"
+
 
 
 void LogToStream(void *stream,
@@ -26,21 +20,20 @@ void LogToStream(void *stream,
   *out << "[" << now_text << "] " << message << std::endl;
 }
 
-
-constexpr Uint32 MAX_FRAMERATE=60;
-constexpr Uint32 FRAME_INTERVAL=1000/MAX_FRAMERATE + 1;
-
 int main(int argc, char** argv) {
+  using util::at_exit;
   std::ofstream log_out("dungeons.log");
   SDL_LogSetOutputFunction(&LogToStream, &log_out);
   if(int errcode = SDL_Init(SDL_INIT_EVERYTHING)) {
     SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to initialize SDL [%d]: %s", errcode, SDL_GetError());
+    return -errcode;
   }
   SDL_Log("Successfully initialized SDL");
   SDL_Window* window;
   SDL_Renderer* renderer;
   if(SDL_CreateWindowAndRenderer(1024,768,0,&window,&renderer)) {
     SDL_LogError(SDL_LOG_CATEGORY_VIDEO, "Failed to create window/renderer: %s", SDL_GetError());
+    return 1;
   }
   at_exit destroy_window_and_renderer([=]() {
       SDL_DestroyRenderer(renderer);
@@ -58,7 +51,7 @@ int main(int argc, char** argv) {
       }
     }
     Uint32 current_time = SDL_GetTicks();
-    if(current_time-last_frame_time >= FRAME_INTERVAL) {
+    if(current_time-last_frame_time >= util::FRAME_INTERVAL) {
       last_frame_time = current_time;
       SDL_SetRenderDrawColor(renderer, 220, 180, 100, 255);
       SDL_RenderClear(renderer);
