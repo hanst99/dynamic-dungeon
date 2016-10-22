@@ -1,5 +1,11 @@
 #!/bin/bash
 
+provision_tag=1 #increment this whenever making a change to this script
+provision_tag_file=/etc/vagrant_provision_tag
+
+# only run this provisioner if the provisioner tag isn't present or up to date
+if [ ! -f $provision_tag_file ] || [ $(cat $provision_tag_file) -lt $provision_tag ]; then
+
 # adjusts mirror list to prefer german mirrors
 # If you're building from outside of germany,
 # or mirror resolution fails for some reason,
@@ -47,3 +53,6 @@ downloadAndExtract https://www.libsdl.org/release/SDL2-devel-2.0.4-mingw.tar.gz 
     && fixAccessRightsAndInstall /tmp/SDL2-2.0.4 &
 downloadAndExtract https://www.libsdl.org/projects/SDL_image/release/SDL2_image-devel-2.0.1-mingw.tar.gz \
     && fixAccessRightsAndInstall /tmp/SDL2_image-2.0.1 &
+
+echo $provision_tag > /etc/vagrant_provision_tag
+fi
