@@ -8,132 +8,7 @@
 #include <SDL_image.h>
 
 #include "dungeon_util.h"
-
-class Tileset {
-  SDL_Texture* tex;
-  int rows;
-  int columns;
-  int tile_width;
-  int tile_height;
-  int tile_offset_x;
-  int tile_offset_y;
-  int tile_margin_x;
-  int tile_margin_y;
-public:
-  Tileset(SDL_Texture* tex,
-          int tile_width, int tile_height,
-          int tile_offset_x=0, int tile_offset_y=0,
-          int tile_margin_x=0, int tile_margin_y=0)
-    : tex(tex),
-      rows(0), columns(0),
-      tile_width(tile_width), tile_height(tile_height),
-      tile_offset_x(tile_offset_x), tile_offset_y(tile_offset_y),
-      tile_margin_x(tile_margin_x), tile_margin_y(tile_margin_y)
-  {
-    int width, height;
-    SDL_QueryTexture(tex, nullptr, nullptr, &width, &height);
-    columns = (width-tile_offset_x)/tile_width;
-    rows = (height-tile_offset_y)/tile_height;
-  }
-
-  int Rows() const {
-    return rows;
-  }
-
-  int Columns() const {
-    return columns;
-  }
-
-  int NumTiles() const {
-    return rows*columns;
-  }
-
-  int TileWidth() const {
-    return tile_width;
-  }
-
-  int TileHeight() const {
-    return tile_height;
-  }
-
-  void DrawTile(SDL_Renderer* renderer, int tileNr, int x, int y, int w, int h) const {
-    int row = tileNr/columns;
-    int column = tileNr - row*columns;
-    SDL_Rect srcRect {
-      tile_offset_x+column*(tile_width+tile_margin_x),
-      tile_offset_y+row*(tile_height+tile_margin_y),
-      tile_width,
-      tile_height
-    };
-    SDL_Rect destRect {
-      x,y,w,h
-    };
-    SDL_RenderCopy(renderer, tex, &srcRect, &destRect);
-  }
-};
-
-class MapLayer {
-public:
-  virtual void Draw(SDL_Renderer* renderer, int x, int y, int w, int h) const = 0;
-  virtual ~MapLayer() = default;
-};
-
-class TileLayer : public MapLayer {
-  int width;
-  int height;
-  Tileset tileset;
-  std::vector<int> tiles;
-  static const int TILE_NONE;
-public:
-  TileLayer(int width, int height, Tileset tileset)
-    : width(width), height(height), tileset(tileset), tiles(width*height,TILE_NONE)
-  {}
-  void Draw(SDL_Renderer* renderer, int x, int y, int w, int h) const override {
-    for(int row=0; row<height; ++row) {
-      for(int column=0; column<width; ++column) {
-        int tileNr = tiles[row*width+column];
-        if(tileNr != TILE_NONE) {
-          tileset.DrawTile(renderer,
-                           tileNr,
-                           x+column*w, y+row*h,
-                           w, h);
-        }
-      }
-    }
-  }
-  void SetTile(int x, int y, int tileNr) {
-    tiles[y*width+x] = tileNr;
-  }
-};
-
-const int TileLayer::TILE_NONE = -1;
-
-class Tilemap {
-  std::vector<std::unique_ptr<MapLayer>> layers;
-  int tileWidth, tileHeight;
-public:
-  Tilemap(int tileWidth, int tileHeight)
-    : layers(), tileWidth(tileWidth), tileHeight(tileHeight)
-  {}
-  void Draw(SDL_Renderer* renderer, int x, int y) const {
-    for(const auto& layer : layers) {
-      layer->Draw(renderer, x, y, tileWidth, tileHeight);
-    }
-  }
-  void AddLayer(std::unique_ptr<MapLayer>&& layer) {
-    layers.emplace_back(std::forward<decltype(layer)>(layer));
-  }
-};
-
-
-SDL_Texture* LoadTexture(SDL_Renderer* renderer, const std::string& texPath) {
-  SDL_Surface* surf = IMG_Load(texPath.c_str());
-  util::at_exit free_surf([=]() {
-      SDL_FreeSurface(surf);
-  });
-  return SDL_CreateTextureFromSurface(renderer, surf);
-}
-
+#include "dungeon_maps.h"
 
 void LogToStream(void *stream,
                int category,
@@ -162,6 +37,14 @@ public:
     SDL_RenderCopy(renderer, tex, &srcRect, &destRect);
   }
 };
+
+SDL_Texture* LoadTexture(SDL_Renderer* renderer, const std::string& texPath) {
+  SDL_Surface* surf = IMG_Load(texPath.c_str());
+  util::at_exit free_surf([=]() {
+      SDL_FreeSurface(surf);
+    });
+  return SDL_CreateTextureFromSurface(renderer, surf);
+}
 
 struct Vec2 {
   int x,y;
@@ -208,12 +91,12 @@ int main(int argc, char** argv) {
       SDL_DestroyTexture(tilesetTex);
   });
 
-  Tileset roguelikeSheet(tilesetTex,
+  dungeon::Tileset roguelikeSheet(tilesetTex,
                          16,16,
                          0,0,
                          1,1);
-  Tilemap testMap(TILE_WIDTH, TILE_HEIGHT);
-  auto layer1 = std::make_unique<TileLayer>(20,20,roguelikeSheet);
+  dungeon::Tilemap testMap(TILE_WIDTH, TILE_HEIGHT);
+  auto layer1 = std::make_unique<dungeon::TileLayer>(20,20,roguelikeSheet);
   for(int row=0; row<20; ++row) {
     for(int column=0; column<20; ++column) {
       layer1->SetTile(row,column,0);
